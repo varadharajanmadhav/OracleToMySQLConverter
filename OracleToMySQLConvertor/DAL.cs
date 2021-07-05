@@ -14,7 +14,7 @@ namespace OracleToMySQLConvertor
         public static DataTable GetTableList(Database db)
         {
             StringBuilder sqlCmdBuilder = new StringBuilder();
-            sqlCmdBuilder.Append(" SELECT TABLE_NAME FROM USER_TABLES WHERE ORDER BY TABLE_NAME ");
+            sqlCmdBuilder.Append(" SELECT TABLE_NAME FROM USER_TABLES ORDER BY TABLE_NAME ");
 
             DbCommand dbCmd = db.GetSqlStringCommand(sqlCmdBuilder.ToString());
             dbCmd.CommandType = CommandType.Text;
