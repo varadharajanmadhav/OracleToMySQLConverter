@@ -40,7 +40,6 @@ namespace OracleToMySQLConvertor
                         ConvertTable(db, mySQLDB, tableName);
                 }
 
-                Console.WriteLine("Completed.");
                 WriteLog("Completed.");
             }
             catch (Exception ex)
@@ -59,13 +58,13 @@ namespace OracleToMySQLConvertor
 
         static void WriteLog(string content)
         {
+            Console.WriteLine(content);
             System.IO.File.AppendAllText(LogFilePath, content + "\n");
         }
 
         static void ConvertTable(Database db, Database mySQLDB, string tableName)
         {
             string logDesc = string.Format("Converting Table {0} ({1}/{2})...", tableName, ++TableIndex, TableCount);
-            Console.WriteLine(logDesc);
             WriteLog(logDesc);
 
             DataTable columnTable = DAL.GetTableColumns(db, tableName);
@@ -171,22 +170,22 @@ namespace OracleToMySQLConvertor
                 {
                     string constraintName = uniqueKeyRow["CONSTRAINT_NAME"].ToString();
                     DataRow[] uniqueKeyColumns = foreignKeyTable.Select("CONSTRAINT_NAME='" + constraintName + "'", "POSITION ASC");
-                    string rTableName = string.Empty;
+
                     string rContraintName = string.Empty;
                     List<string> columnList = new List<string>();
-
                     foreach (DataRow row in uniqueKeyColumns)
                     {
-                        rTableName = row["R_TABLE_NAME"].ToString().ToUpper();
                         rContraintName = row["R_CONSTRAINT_NAME"].ToString().ToUpper();
                         string columnName = row["COLUMN_NAME"].ToString().ToUpper();
                         columnList.Add(columnName);
                     }
 
+                    string rTableName = string.Empty;
                     List<string> rColumnList = new List<string>();
-                    DataTable primaryKeyInfoTable = DAL.GetPrimaryKeyDetails(db, rTableName, rContraintName);
+                    DataTable primaryKeyInfoTable = DAL.GetPrimaryKeyDetails(db, string.Empty, rContraintName);
                     foreach(DataRow row in primaryKeyInfoTable.Rows)
                     {
+                        rTableName = row["TABLE_NAME"].ToString().Trim();
                         string columnName = row["COLUMN_NAME"].ToString().ToUpper();
                         rColumnList.Add(columnName);
                     }
@@ -201,7 +200,6 @@ namespace OracleToMySQLConvertor
             {
                 if (!CompletedTables.Contains(forignkeyTable))
                 {
-                    Console.WriteLine("Executing Foreign key table " + forignkeyTable);
                     WriteLog("Executing Foreign key table " + forignkeyTable);
                     ConvertTable(db, mySQLDB, forignkeyTable);
                 }
@@ -269,7 +267,6 @@ namespace OracleToMySQLConvertor
                     {
                         schemaLogBuilder.Append(query + ";");
                         schemaLogBuilder.Append("\n-- Exception: " + ex.Message);
-                        Console.WriteLine(tableName + ": " + ex.Message);
                         WriteLog(tableName + ": " + ex.Message);
                     }
                 }

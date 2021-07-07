@@ -45,8 +45,11 @@ namespace OracleToMySQLConvertor
             StringBuilder sqlCmdBuilder = new StringBuilder();
             sqlCmdBuilder.Append(" SELECT cols.table_name, cols.column_name, cols.position, cons.status, cons.owner,cons.constraint_name ");
             sqlCmdBuilder.Append(" FROM all_constraints cons, all_cons_columns cols ");
-            sqlCmdBuilder.Append(" WHERE cols.table_name = :TABLE_NAME AND cons.constraint_type = 'P' ");
+            sqlCmdBuilder.Append(" WHERE cons.constraint_type = 'P' ");
             sqlCmdBuilder.Append(" AND cons.constraint_name = cols.constraint_name AND cons.owner = cols.owner ");
+
+            if (tableName.Length > 0)
+                sqlCmdBuilder.Append(" AND cols.table_name = :TABLE_NAME ");
 
             if (constraintName.Length > 0)
                 sqlCmdBuilder.Append(" AND cons.constraint_name=:CONSTRAINT_NAME ");
@@ -56,7 +59,8 @@ namespace OracleToMySQLConvertor
             DbCommand dbCmd = db.GetSqlStringCommand(sqlCmdBuilder.ToString());
             dbCmd.CommandType = CommandType.Text;
 
-            db.AddInParameter(dbCmd, ":TABLE_NAME", DbType.AnsiString, tableName);
+            if (tableName.Length > 0)
+                db.AddInParameter(dbCmd, ":TABLE_NAME", DbType.AnsiString, tableName);
 
             if (constraintName.Length > 0)
                 db.AddInParameter(dbCmd, ":CONSTRAINT_NAME", DbType.AnsiString, constraintName);
@@ -84,10 +88,9 @@ namespace OracleToMySQLConvertor
         public static DataTable GetForeignKeyDetails(Database db, string tableName)
         {
             StringBuilder sqlCmdBuilder = new StringBuilder();
-            sqlCmdBuilder.Append(" SELECT cols.table_name, cols.column_name, cols.position, cons.status, cons.owner,cons.constraint_name,cons.r_constraint_name,c_pk.table_name as r_table_name ");
+            sqlCmdBuilder.Append(" SELECT cols.table_name, cols.column_name, cols.position, cons.status, cons.owner,cons.constraint_name,cons.r_constraint_name ");
             sqlCmdBuilder.Append(" FROM all_constraints cons ");
             sqlCmdBuilder.Append(" INNER JOIN all_cons_columns cols on cons.constraint_name = cols.constraint_name AND cons.owner = cols.owner ");
-            sqlCmdBuilder.Append(" INNER JOIN all_constraints c_pk on cons.r_constraint_name = c_pk.constraint_name AND cons.r_owner = c_pk.owner ");
             sqlCmdBuilder.Append(" WHERE cols.table_name = :TABLE_NAME AND cons.constraint_type = 'R' ");
             sqlCmdBuilder.Append(" ORDER BY cols.table_name, cols.position ");
 
