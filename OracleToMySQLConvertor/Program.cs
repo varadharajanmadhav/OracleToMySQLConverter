@@ -16,6 +16,7 @@ namespace OracleToMySQLConvertor
         static string FolderPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\Scripts";
         static string LogFilePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".txt";
         static bool ImportToMySQLServer = ConfigurationManager.AppSettings["ImportSchemaToMySQLServer"].ToString().ToUpper() == "TRUE" ? true : false;
+        static string OracleSchemaName = ConfigurationManager.AppSettings["OracleSchemaName"].ToString().Trim().ToUpper();
 
         static int TableIndex = 0;
         static int TableCount = 0;
@@ -67,11 +68,11 @@ namespace OracleToMySQLConvertor
             string logDesc = string.Format("Converting Table {0} ({1}/{2})...", tableName, ++TableIndex, TableCount);
             WriteLog(logDesc);
 
-            DataTable columnTable = DAL.GetTableColumns(db, tableName);
-            DataTable primaryKeyTable = DAL.GetPrimaryKeyDetails(db, tableName, string.Empty);
-            DataTable uniqueKeyTable = DAL.GetUniqueKeyDetails(db, tableName);
-            DataTable foreignKeyTable = DAL.GetForeignKeyDetails(db, tableName);
-            DataTable indexTable = DAL.GetIndexDetails(db, tableName);
+            DataTable columnTable = DAL.GetTableColumns(db, OracleSchemaName, tableName);
+            DataTable primaryKeyTable = DAL.GetPrimaryKeyDetails(db, OracleSchemaName, tableName, string.Empty);
+            DataTable uniqueKeyTable = DAL.GetUniqueKeyDetails(db, OracleSchemaName, tableName);
+            DataTable foreignKeyTable = DAL.GetForeignKeyDetails(db, OracleSchemaName, tableName);
+            DataTable indexTable = DAL.GetIndexDetails(db, OracleSchemaName, tableName);
 
             StringBuilder schemaBuilder = new StringBuilder();
             schemaBuilder.AppendFormat("CREATE TABLE {0} \n(", tableName);
@@ -95,7 +96,7 @@ namespace OracleToMySQLConvertor
                 if (colIndex > 0)
                     schemaBuilder.Append(",");
 
-                if (columnName.Contains("FTIMESTAMP"))
+                if (columnName.Contains("TIMESTAMP"))
                     schemaBuilder.AppendFormat("{0}\t TIMESTAMP", columnName);
                 else if (dataType == "VARCHAR2")
                     schemaBuilder.AppendFormat("{0}\tVARCHAR({1})", columnName, dataLength);
@@ -107,7 +108,7 @@ namespace OracleToMySQLConvertor
                     schemaBuilder.AppendFormat("{0}\tINT", columnName);
                 else if (dataType == "NUMBER" && dataScale > 0)
                     schemaBuilder.AppendFormat("{0}\tDECIMAL({1},{2})", columnName, dataPrecision, dataScale);
-                else if (dataType == "NCLOB")
+                else if (dataType == "NCLOB" || dataType == "CLOB")
                     schemaBuilder.AppendFormat("{0}\tMEDIUMTEXT", columnName);
                 else
                     schemaBuilder.AppendFormat("{0}\t{1}", columnName, dataType);
@@ -116,7 +117,7 @@ namespace OracleToMySQLConvertor
                     schemaBuilder.Append("\tNOT NULL");
                 else
                 {
-                    if (columnName.Contains("FTIMESTAMP"))
+                    if (columnName.Contains("TIMESTAMP"))
                         schemaBuilder.AppendFormat("\tDEFAULT CURRENT_TIMESTAMP");
                     else if (dataDefault.Contains("TO_CHAR") || dataDefault.Contains("SYSDATE"))
                         schemaBuilder.AppendFormat("\tDEFAULT {0}", "(" + DAL.ParseQueryToMySQLDB(dataDefault) + ")");
@@ -182,7 +183,7 @@ namespace OracleToMySQLConvertor
 
                     string rTableName = string.Empty;
                     List<string> rColumnList = new List<string>();
-                    DataTable primaryKeyInfoTable = DAL.GetPrimaryKeyDetails(db, string.Empty, rContraintName);
+                    DataTable primaryKeyInfoTable = DAL.GetPrimaryKeyDetails(db, OracleSchemaName, string.Empty, rContraintName);
                     foreach(DataRow row in primaryKeyInfoTable.Rows)
                     {
                         rTableName = row["TABLE_NAME"].ToString().Trim();
@@ -239,8 +240,8 @@ namespace OracleToMySQLConvertor
                             List<string> modifiedExpList = new List<string>();
                             foreach (string colExp in columnList)
                             {
-                                if (colExp.Contains("NVL") || colExp.Contains("DECODE") || colExp.Contains("UPPER") || colExp.Contains("TO_CHAR") || colExp.Contains("TO_DATE"))
-                                    modifiedExpList.Add("(" + DAL.ParseQueryToMySQLDB(colExp) + ")");
+                                if (colExp.Contains("NVL") || colExp.Contains("DECODE") || colExp.Contains("UPPER") || colExp.Contains("TO_CHAR") || colExp.Contains("TO_DATE") || colExp.Contains("-") || colExp.Contains("+"))
+                                    modifiedExpList.Add("(" + DAL.ParseQueryToMySQLDB(colExp) + ")");//Outer bracket required for functional expression
                                 else
                                     modifiedExpList.Add(colExp);
                             }
