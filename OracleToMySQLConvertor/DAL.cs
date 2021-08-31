@@ -130,6 +130,30 @@ namespace OracleToMySQLConvertor
             return db.ExecuteDataSet(dbCmd).Tables[0];
         }
 
+        public static DataTable GetViewDetails(Database db, string schemaName)
+        {
+            StringBuilder sqlCmdBuilder = new StringBuilder();
+            sqlCmdBuilder.Append(" select owner as schema_name,text,view_name from sys.all_views WHERE owner=:SCHEMA_NAME order by owner,view_name ");
+
+            DbCommand dbCmd = db.GetSqlStringCommand(sqlCmdBuilder.ToString());
+            dbCmd.CommandType = CommandType.Text;
+
+            db.AddInParameter(dbCmd, ":SCHEMA_NAME", DbType.AnsiString, schemaName);
+
+            return db.ExecuteDataSet(dbCmd).Tables[0];
+        }
+
+        public static DataTable GetSequenceDetails(Database db)
+        {
+            StringBuilder sqlCmdBuilder = new StringBuilder();
+            sqlCmdBuilder.Append(" SELECT SEQUENCE_NAME FROM USER_SEQUENCES WHERE SEQUENCE_NAME LIKE 'SEQ%' ORDER BY SEQUENCE_NAME ");
+
+            DbCommand dbCmd = db.GetSqlStringCommand(sqlCmdBuilder.ToString());
+            dbCmd.CommandType = CommandType.Text;
+
+            return db.ExecuteDataSet(dbCmd).Tables[0];
+        }
+
         public static string ParseQueryToMySQLDB(string expression)
         {
             #region DecodeConvertion
@@ -213,12 +237,12 @@ namespace OracleToMySQLConvertor
             reqQuery.Replace(":", "?").Replace("NVL(", "IFNULL(").Replace("DECODE(", "IF(").Replace("AND ROWNUM=", "LIMIT ").Replace("ROWNUM=", "LIMIT ").Replace("WHERE ROWNUM<=", "LIMIT ")
                 .Replace("YYYYMMDD", "%Y%m%d").Replace("HH24MISS", "%H%i%s").Replace("HH24:MI:SS", "%H%i%s").Replace("TO_CHAR(TO_DATE", "DATE_FORMAT(TO_DATE").Replace("TO_DATE(", "STR_TO_DATE(").Replace("FETCH FIRST ROW ONLY", "LIMIT 1")
                 .Replace("TO_CHAR(MAX(", "DATE_FORMAT(MAX(").Replace("TO_CHAR(MIN(", "DATE_FORMAT(MIN(").Replace("LISTAGG(", "GROUP_CONCAT(").Replace(",U'", ",'")
-                .Replace("TO_NUMBER(TO_CHAR(SYSDATE,'yyyyMMdd'))", "DATE_FORMAT(SYSDATE(),'%Y%m%d')");
+                .Replace("TO_NUMBER(TO_CHAR(SYSDATE,'yyyyMMdd'))", "DATE_FORMAT(SYSDATE(),'%Y%m%d')").Replace("SYSDATE,","SYSDATE()");
 
             return reqQuery.ToString();
         }
 
-        public static bool ExecuteMySQLScript(Database db, string script)
+        public static bool ExecuteDatabaseScript(Database db, string script)
         {
             DbCommand dbCmd = db.GetSqlStringCommand(script);
             dbCmd.CommandType = CommandType.Text;
