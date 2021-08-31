@@ -12,8 +12,5 @@ Add Oracle connection string.
 Add Oracle schema name.
 `<add key="OracleSchemaName" value="SYSTEM"/>`
 
-Enable this key value to TRUE to import schema into MySQL server.
-`<add key="ImportSchemaToMySQLServer" value="FALSE"/>`
-
 Add MySQL connection string to import schema into MySQL Server.
 `<add name="MySQLConnection" connectionString="Datasource=localhost;Database=test;uid=test;pwd=password;Allow User Variables=True" providerName="MySql.Data.MySqlClient"/>`
